@@ -1,3 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>API Viewer</title>
+
+<style>
+  body {
+    margin: 0;
+    font-family: monospace;
+    background: #000;
+    color: #fff;
+  }
+
+  /* 🔍 Top Search Bar (NON-STICKY) */
 .topbar {
   padding: 14px 18px;
   background: #0b0b0b;
@@ -58,3 +73,84 @@ button:active {
 .loader {
   margin-left: 6px;
 }
+
+  /* 📦 JSON Viewer */
+  .viewer {
+    padding: 20px;
+    white-space: pre;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* subtle highlight (still white-based) */
+  .key { color: #ffffff; font-weight: bold; }
+  .string { color: #dcdcdc; }
+  .number { color: #bbbbbb; }
+  .boolean { color: #aaaaaa; }
+  .null { color: #777777; }
+
+</style>
+</head>
+
+<body>
+
+<div class="topbar">
+  <input id="docid" placeholder="Enter DocID..." onkeypress="handleEnter(event)">
+  <button onclick="fetchData()">Fetch</button>
+  <div class="loader" id="loader"></div>
+</div>
+
+<div id="viewer" class="viewer">
+Enter a DocID and press Fetch...
+</div>
+
+<script>
+const API = "http://192.168.8.12:9001/web_services/CompanyDetails.php";
+
+function handleEnter(e) {
+  if (e.key === "Enter") fetchData();
+}
+
+function syntaxHighlight(json) {
+  json = JSON.stringify(json, null, 2);
+
+  return json.replace(/("(\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*"(\\s*:)?|\b(true|false|null)\b|\b\d+\b)/g, function (match) {
+    let cls = "number";
+    if (/^"/.test(match)) {
+      cls = /:$/.test(match) ? "key" : "string";
+    } else if (/true|false/.test(match)) {
+      cls = "boolean";
+    } else if (/null/.test(match)) {
+      cls = "null";
+    }
+    return `<span class="${cls}">${match}</span>`;
+  });
+}
+
+async function fetchData() {
+  const docid = document.getElementById("docid").value.trim();
+  const viewer = document.getElementById("viewer");
+  const loader = document.getElementById("loader");
+
+  if (!docid) return;
+
+  loader.style.display = "block";
+  viewer.innerHTML = "Loading...";
+
+  try {
+    const res = await fetch(`${API}?docid=${docid}`);
+    const data = await res.json();
+
+    viewer.innerHTML = syntaxHighlight(data);
+
+  } catch (err) {
+    viewer.innerHTML = "Error fetching API";
+    console.error(err);
+  }
+
+  loader.style.display = "none";
+}
+</script>
+
+</body>
+</html>
